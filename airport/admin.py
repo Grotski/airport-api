@@ -5,8 +5,8 @@ from .models import Airport, Airplane, AirplaneType, Crew, Flight, Route
 
 @admin.register(Airport)
 class AirportAdmin(admin.ModelAdmin):
-    list_display = ("name", "city")
-    search_fields = ("city",)
+    list_display = ("name", "closest_big_city")
+    search_fields = ("closest_big_city",)
 
 
 @admin.register(Route)

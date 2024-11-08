@@ -24,6 +24,8 @@ from .serializers import (
     FlightListSerializer,
     FlightDetailSerializer,
     AirplaneSerializer,
+    AirplaneListSerializer,
+    AirplaneImageSerializer,
     AirplaneTypeSerializer,
     RouteSerializer,
     RouteListSerializer,
@@ -40,20 +42,19 @@ from .permissions import IsAdminOrIfAuthenticatedReadOnly
 class CrewViewSet(viewsets.ModelViewSet):
     queryset = Crew.objects.all()
     serializer_class = CrewSerializer
-    permission_classes = ["IsAdminOrIfAuthenticatedReadOnly"]
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
 class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()
     serializer_class = AirportSerializer
-    permission_classes = ["IsAdminOrIfAuthenticatedReadOnly"]
-
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
 class RouteViewSet(viewsets.ModelViewSet):
     queryset = Route.objects.all().select_related("source", "destination")
     serializer_class = RouteSerializer
-    permission_classes = ["IsAdminOrIfAuthenticatedReadOnly"]
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
     @staticmethod
@@ -110,15 +111,37 @@ class RouteViewSet(viewsets.ModelViewSet):
 class AirplaneTypeViewSet(viewsets.ModelViewSet):
     queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
-    permission_classes = ["IsAdminOrIfAuthenticatedReadOnly"]
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
 
 class AirplaneViewSet(viewsets.ModelViewSet):
     queryset = Airplane.objects.all()
     serializer_class = AirplaneSerializer
-    permission_classes = ["IsAdminOrIfAuthenticatedReadOnly"]
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
+    def get_serializer(self):
+        if self.action == "list":
+            return AirplaneListSerializer
+        if self.action == "upload_image":
+            return AirplaneImageSerializer
+        return AirplaneSerializer
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="upload-image",
+        permission_classes=[IsAdminUser],
+    )
+    def upload_image(self, request, pk=None):
+        airplane = self.get_object()
+        serializer = self.get_serializer(airplane, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FlightViewSet(viewsets.ModelViewSet):
@@ -134,7 +157,7 @@ class FlightViewSet(viewsets.ModelViewSet):
         )
     )
     serializer_class = FlightSerializer
-    permission_classes = ["IsAdminOrIfAuthenticatedReadOnly"]
+    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
     def get_queryset(self):
         date = self.request.query_params.get("date")
