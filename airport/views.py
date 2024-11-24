@@ -120,7 +120,7 @@ class AirplaneViewSet(viewsets.ModelViewSet):
     serializer_class = AirplaneSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
-    def get_serializer(self):
+    def get_serializer_class(self):
         if self.action == "list":
             return AirplaneListSerializer
         if self.action == "upload_image":
