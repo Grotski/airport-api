@@ -12,15 +12,16 @@ class Crew(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
-    
+
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
 
 class Airport(models.Model):
-    name = models.CharField(max_length=1000)
-    closest_big_city = models.CharField(max_length=500)
+    name = models.CharField(max_length=2000)
+    closest_big_city = models.CharField(max_length=1000)
+    country = models.CharField(max_length=400)
 
     def __str__(self):
         return self.name
@@ -28,14 +29,18 @@ class Airport(models.Model):
 
 class Route(models.Model):
     source = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="routes")
-    destination = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="route")
+    destination = models.ForeignKey(
+        Airport, on_delete=models.CASCADE, related_name="route"
+    )
     ditance = models.IntegerField()
 
     class Meta:
         ordering = ["-ditance"]
 
     def __str__(self):
-        return f"{self.source.name} to {self.destination.name} at distance: {self.ditance}"
+        return (
+            f"{self.source.name} to {self.destination.name} at distance: {self.ditance}"
+        )
 
 
 class AirplaneType(models.Model):
@@ -45,7 +50,7 @@ class AirplaneType(models.Model):
         return self.name
 
 
-def airplane_image_file_path (instance, filename):
+def airplane_image_file_path(instance, filename):
     _, extension = os.path.splitext(filename)
     filename = f"{slugify(instance.name)}-{uuid.uuid4()}{extension}"
     return os.path.join("uploads/airplanes/", filename)
@@ -55,8 +60,10 @@ class Airplane(models.Model):
     name = models.CharField(max_length=255)
     rows = models.IntegerField()
     seats_in_row = models.IntegerField()
-    airplane_type = models.ForeignKey(AirplaneType, on_delete=models.CASCADE, related_name="airplanes")
-    image = models.ImageField(null=True, blank=True, upload_to=airplane_image_file_path)
+    airplane_type = models.ForeignKey(
+        AirplaneType, on_delete=models.CASCADE, related_name="airplanes"
+    )
+    image = models.ImageField(null=True, upload_to=airplane_image_file_path)
 
     def capacity(self):
         return self.rows * self.seats_in_row
@@ -67,7 +74,9 @@ class Airplane(models.Model):
 
 class Flight(models.Model):
     route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="flights")
-    airplane = models.ForeignKey(Airplane, on_delete=models.CASCADE, related_name="flights")
+    airplane = models.ForeignKey(
+        Airplane, on_delete=models.CASCADE, related_name="flights"
+    )
     departure_time = models.DateTimeField()
     arriwal_time = models.DateTimeField()
     crew = models.ManyToManyField(Crew, blank=True, related_name="flights")
@@ -80,7 +89,9 @@ class Flight(models.Model):
 
 
 class Order(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders"
+    )
     created_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -109,17 +120,11 @@ class Ticket(models.Model):
 
     def clean(self):
         Ticket.validate_ticket(
-            self.row,
-            self.seat,
-            self.fligh.airplane,
-            ValidationError
+            self.row, self.seat, self.fligh.airplane, ValidationError
         )
 
-    def save(self,
-             force_insert=False,
-             force_update=False,
-             using=None,
-             update_fields=None
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
     ):
         self.full_clean()
         return super(Ticket, self).save(

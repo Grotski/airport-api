@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
 from .models import (
@@ -25,6 +26,7 @@ from .serializers import (
     FlightDetailSerializer,
     AirplaneSerializer,
     AirplaneListSerializer,
+    AirplaneDetailSerializer,
     AirplaneImageSerializer,
     AirplaneTypeSerializer,
     RouteSerializer,
@@ -49,6 +51,14 @@ class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()
     serializer_class = AirportSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
+    
+    def create(self, request, *args, **kwargs):
+        is_many = isinstance(request.data, list)
+
+        serialize = self.get_serializer(data=request.data, many=is_many)
+        serialize.is_valid(raise_exception=True)
+        self.perform_create(serialize)
+        return Response(serialize.data, status=status.HTTP_201_CREATED)
 
 
 class RouteViewSet(viewsets.ModelViewSet):
@@ -123,6 +133,8 @@ class AirplaneViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return AirplaneListSerializer
+        if self.action == "retrieve":
+            return AirplaneDetailSerializer
         if self.action == "upload_image":
             return AirplaneImageSerializer
         return AirplaneSerializer
@@ -176,7 +188,7 @@ class FlightViewSet(viewsets.ModelViewSet):
         if airplane_id_str:
             queryset = queryset.filter(airplane_id=int(airplane_id_str))
 
-        return queryset
+        return queryset.distinct()
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -236,7 +248,7 @@ class OrderViewSet(
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
     
-    def get_serializer_classs(self):
+    def get_serializer_class(self):
         if self.action == "list":
             return OrderListSerializer
         return OrderSerializer
